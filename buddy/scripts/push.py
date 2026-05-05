@@ -117,7 +117,9 @@ def _upload_file(s: serial.Serial, src_path: str, dest_name: str) -> None:
     head_lines.append('fp = open("/flash/{}", "wb")'.format(dest_name))
     head = "\n".join(head_lines) + "\n"
     out = _paste(s, head, settle=0.2)
-    if "Error" in out or "Traceback" in out:
+    # Check only for Traceback, not "Error", because the echoed script
+    # contains "except OSError:" which would produce a false positive.
+    if "Traceback" in out:
         raise RuntimeError("failed to open dest file:\n" + out)
 
     total = len(data)
@@ -187,7 +189,7 @@ def main() -> int:
 
         if not args.no_reset:
             sys.stderr.write("rebooting device so main.py runs...\n")
-            _hard_reset(s)
+            _paste(s, "import machine; machine.reset()\n", settle=0.5)
     finally:
         s.close()
 
